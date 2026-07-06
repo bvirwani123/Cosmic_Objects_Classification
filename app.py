@@ -1,4 +1,44 @@
 import streamlit as st
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import joblib  # or import pickle
+import os
+
+# --- STEP 1: INITIAL VERIFICATION ---
+st.write("✨ App script initialized successfully!")
+
+# --- STEP 2: CHECK FILE EXISTENCE & SIZE ---
+model_filename = "cosmic_objects_rf_pipeline.pkl"  # ⚠️ Change this to your exact pickle filename!
+
+if os.path.exists(model_filename):
+    file_size_mb = os.path.getsize(model_filename) / (1024 * 1024)
+    st.write(f"📂 File detected! Detected size: `{file_size_mb:.2f} MB`")
+    
+    # CRITICAL CHECK FOR GIT LFS POINTER BUG:
+    if file_size_mb < 0.01:
+        st.error("🚨 BUG DETECTED: Streamlit is reading a 130-byte Git LFS pointer text file instead of the actual 79 MB model file.")
+else:
+    st.error(f"❌ ERROR: File `{model_filename}` cannot be found in this directory.")
+
+# --- STEP 3: TRY LOADING THE MODEL ---
+st.write("🔄 Attempting to load the ML model into memory...")
+
+try:
+    # This is the line where your code is currently freezing:
+    model = joblib.load(model_filename)  # Or pickle.load(open(model_filename, "rb"))
+    st.write("✅ SUCCESS! Model fully loaded into RAM.")
+except Exception as e:
+    st.error(f"💥 LOADING FAILED: {e}")
+
+# --- REST OF YOUR APP CODE ---
+st.title("Cosmic Objects Classification")
+# (Your inputs, buttons, and prediction code continue down here...)
+
+
+
+import streamlit as st
 st.write("The app is starting up successfully!")
 
 import matplotlib.pyplot as plt
