@@ -1,3 +1,6 @@
+import streamlit as st
+st.write("The app is starting up successfully!")
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
