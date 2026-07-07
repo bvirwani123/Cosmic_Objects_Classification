@@ -1,116 +1,65 @@
 import streamlit as st
-import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-import joblib  # or import pickle
+import joblib
 import os
 
-# --- STEP 1: INITIAL VERIFICATION ---
-st.write("✨ App script initialized successfully!")
+# Set layout configurations
+st.set_page_config(layout="centered", initial_sidebar_state="collapsed")
 
-# --- STEP 2: CHECK FILE EXISTENCE & SIZE ---
-model_filename = "cosmic_objects_rf_pipeline.pkl"  # ⚠️ Change this to your exact pickle filename!
+# --- BACKGROUND SYSTEM LOGIC (SILENT CHECK & LOAD) ---
+model_filename = "cosmic_objects_rf_pipeline.pkl"
 
 if os.path.exists(model_filename):
     file_size_mb = os.path.getsize(model_filename) / (1024 * 1024)
-    st.write(f"📂 File detected! Detected size: `{file_size_mb:.2f} MB`")
-    
-    # CRITICAL CHECK FOR GIT LFS POINTER BUG:
+    # Halt with error if it detects a broken Git LFS pointer text file
     if file_size_mb < 0.01:
-        st.error("🚨 BUG DETECTED: Streamlit is reading a 130-byte Git LFS pointer text file instead of the actual 79 MB model file.")
+        st.error("🚨 BUG DETECTED: Streamlit is reading a broken Git LFS pointer text file instead of the actual model file.")
+        st.stop()
 else:
     st.error(f"❌ ERROR: File `{model_filename}` cannot be found in this directory.")
-
-# --- STEP 3: TRY LOADING THE MODEL ---
-st.write("🔄 Attempting to load the ML model into memory...")
+    st.stop()
 
 try:
-    # This is the line where your code is currently freezing:
-    model = joblib.load(model_filename)  # Or pickle.load(open(model_filename, "rb"))
-    st.write("✅ SUCCESS! Model fully loaded into RAM.")
+    artifacts = joblib.load(model_filename)
+    best_pipeline = artifacts["pipeline"]
+    scaler = artifacts["scaler"]
+    label_encoder = artifacts["label_encoder"]
 except Exception as e:
     st.error(f"💥 LOADING FAILED: {e}")
+    st.stop()
 
-# --- REST OF YOUR APP CODE ---
-st.title("Cosmic Objects Classification")
-# (Your inputs, buttons, and prediction code continue down here...)
+# --- WEB DASHBOARD INTERFACE LAYOUT ---
+st.title("🌌 Cosmic-Object Classifier Dashboard")
+st.write("Enter the photometric and coordinate details below to determine the celestial category.")
+st.markdown("---")
 
+st.subheader("Astronomical Feature Inputs")
 
+# Numeric inputs pre-seeded with the exact coordinates/values from your screenshots
+alpha = st.number_input("Alpha (Right Ascension)", value=340.99, format="%.2f")
+delta = st.number_input("Delta (Declination)", value=20.59, format="%.2f")
+u = st.number_input("u (Ultraviolet filter band)", value=23.48, format="%.2f")
+g = st.number_input("g (Green filter band)", value=23.34, format="%.2f")
+r = st.number_input("r (Red filter band)", value=21.32, format="%.2f")
+i = st.number_input("i (Near Infrared filter band)", value=20.25, format="%.2f")
+z = st.number_input("z (Infrared filter band)", value=19.54, format="%.2f")
+redshift = st.number_input("Redshift (z)", value=1.42, format="%.2f")
 
-import streamlit as st
-st.write("The app is starting up successfully!")
+st.markdown("---")
 
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import seaborn as sns
-
-# 1. Read and parse the target table from the shared notebook cell
-data = {"class": ["GALAXY", "STAR", "QSO"], "count": [59445, 21594, 18961]}
-
-df_counts = pd.DataFrame(data)
-
-# Calculate percentages for proper annotations
-total_counts = df_counts["count"].sum()
-df_counts["percentage"] = (df_counts["count"] / total_counts) * 100
-
-# 2. Plotting Configuration
-plt.figure(figsize=(10, 6), dpi=100)
-
-# Set the style used in the notebook
-sns.set_theme(style="whitegrid")
-plt.rcParams.update(
-    {
-        "font.size": 13,
-        "axes.labelsize": 15,
-        "axes.titlesize": 16,
-        "xtick.labelsize": 12,
-        "ytick.labelsize": 12,
-        "figure.titlesize": 18,
-        "patch.edgecolor": "none",
-    }
-)
-
-# 3. Create the Bar Plot
-# Custom color palette aligning with astronomical color schemes
-palette = ["#2b5c8f", "#e69f00", "#8b4513"]
-
-ax = sns.barplot(
-    data=df_counts,
-    x="class",
-    y="count",
-    hue="class",
-    palette=palette,
-    legend=False,
-)
-
-# 4. Add Proper Annotations (Values and Percentages)
-for p in ax.patches:
-    count = int(p.get_height())
-    percentage = (count / total_counts) * 100
-    annotation_text = f"{count:,}\n({percentage:.1f}%)"
-
-    # Place text dynamically over each bar
-    ax.annotate(
-        annotation_text,
-        (p.get_x() + p.get_width() / 2.0, p.get_height()),
-        ha="center",
-        va="center",
-        xytext=(0, 15),
-        textcoords="offset points",
-        fontweight="bold",
-        fontsize=12,
-    )
-
-# 5. Labels and Titles Setup
-plt.title("Distribution of Cosmic Object Classes", pad=25, fontweight="bold")
-plt.xlabel("Cosmic Object Class", labelpad=15)
-plt.ylabel("Observation Count", labelpad=15)
-
-# Adjust y-limit dynamically to prevent layout clippings from top annotations
-plt.ylim(0, df_counts["count"].max() * 1.15)
-plt.tight_layout()
-
-# 6. Render Plot
-plt.show()
+# Prediction handling block
+if st.button("Classify Celestial Object", type="primary"):
+    # Convert active values to 2D numpy structure
+    raw_input = np.array([[alpha, delta, u, g, r, i, z, redshift]])
+    
+    # Standardize data using the model's loaded scaler parameters
+    scaled_input = scaler.transform(raw_input)
+    
+    # Predict encoded target numeric value
+    predicted_encoded = best_pipeline.predict(scaled_input)[0]
+    
+    # Inverse map index label back to original classification string
+    original_class_name = label_encoder.inverse_transform([predicted_encoded])[0]
+    
+    # Output success message container matching target layout
+    st.success(f"✨ The predicted celestial identity is: **{original_class_name}**")
