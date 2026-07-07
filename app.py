@@ -24,7 +24,7 @@ else:
 st.subheader("Data Insights: Class Distributions")
 
 # 1. Read and parse the target table from the shared notebook cell
-data = {"class": ["GALAXY", "STAR", "QSO"], "count":}
+data = {"class": ["GALAXY", "STAR", "QSO"], "count": [59445, 21594, 18961]}
 df_counts = pd.DataFrame(data)
 
 # Calculate percentages for proper annotations
